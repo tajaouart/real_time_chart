@@ -34,38 +34,40 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
+    final stream = getDataStream().asBroadcastStream();
+
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
         title: Text(widget.title),
       ),
-      body: Column(
-        children: [
-          Flexible(
-            child: Container(
-              color: Colors.red,
-              width: MediaQuery.of(context).size.width,
-              height: MediaQuery.of(context).size.width,
-              child: RealTimeGraph(
-                stream: getDataStream(),
+      body: SizedBox(
+        width: double.maxFinite,
+        child: Column(
+          children: [
+            Expanded(
+              child: Container(
+                color: Colors.green,
+                child: RealTimeGraph(
+                  stream: stream,
+                ),
               ),
             ),
-          ),
-          const SizedBox(
-            height: 32,
-          ),
-          Flexible(
-            child: Container(
-              color: Colors.red,
-              width: MediaQuery.of(context).size.width,
-              height: MediaQuery.of(context).size.width,
-              child: RealTimeGraph(
-                stream: getDataStream(),
-                displayMode: ChartDisplay.points,
+            const SizedBox(
+              height: 32,
+              child: Divider(color: Colors.grey,),
+            ),
+            Expanded(
+              child: Container(
+                color: Colors.green,
+                child: RealTimeGraph(
+                  stream: stream,
+                  displayMode: ChartDisplay.points,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -75,7 +77,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Stream<double> getDataStream() {
     return Stream.periodic(const Duration(milliseconds: 500), (_) {
-      return Random().nextInt(300).toDouble();
+      return Random().nextInt(500).toDouble();
     });
   }
 }

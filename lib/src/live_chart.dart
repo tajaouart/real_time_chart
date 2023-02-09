@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:ui';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 
@@ -73,9 +73,9 @@ class RealTimeGraphState extends State<RealTimeGraph>
           width: constraints.maxHeight,
           child: CustomPaint(
             painter: widget.displayMode == ChartDisplay.points
-                ? _PointsGraphPainter(
+                ? _PointGraphPainter(
                     data: _data,
-                    pointsSpacing: widget.pointsSpacing,
+                    pointSpacing: 3,
                   )
                 : _LineGraphPainter(
                     data: _data,
@@ -100,47 +100,64 @@ class RealTimeGraphState extends State<RealTimeGraph>
   }
 }
 
-class _PointsGraphPainter extends CustomPainter {
+class _PointGraphPainter extends CustomPainter {
   final List<Point<double>> data;
+  final double pointSpacing;
 
-  _PointsGraphPainter({
-    required this.data,
-    required this.pointsSpacing,
-  });
-
-  final double pointsSpacing;
+  _PointGraphPainter({required this.data, required this.pointSpacing});
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..style = PaintingStyle.stroke
+      ..style = PaintingStyle.fill
       ..strokeWidth = 1.5
       ..color = Colors.white;
 
+    // Find the maximum y value in the data
+    double maxY = 0;
+
+    // Calculate the scaling factor for the y values
+    double yScale = 1;
+
     // Iterate over the data points and add intermediate points if necessary
+    if (data.isNotEmpty) {
+      maxY = data.map((point) => point.y).reduce(max);
+      yScale = (maxY > size.height) ? (size.height / maxY) : 1;
+    }
+
     for (int i = 0; i < data.length - 1; i++) {
-      final y1 = size.height - data[i].y;
-      final x1 = data[i].x + size.width;
-      final y2 = size.height - data[i + 1].y;
-      final x2 = data[i + 1].x + size.width;
-      final yDiff = (y2 - y1).abs();
+      double y1 = data[i].y * yScale;
+      double x1 = data[i].x + size.width;
+      double y2 = data[i + 1].y * yScale;
+      double x2 = data[i + 1].x + size.width;
+      double yDiff = (y2 - y1).abs();
 
       // If the difference in y values is small, add intermediate points
-      if (yDiff >= pointsSpacing) {
-        int numOfIntermediatePoints = (yDiff / pointsSpacing).round();
-        final yInterval = (y2 - y1) / numOfIntermediatePoints;
-        final xInterval = (x2 - x1) / numOfIntermediatePoints;
+      if (yDiff >= pointSpacing) {
+        int numOfIntermediatePoints = (yDiff / pointSpacing).round();
+        double yInterval = (y2 - y1) / numOfIntermediatePoints;
+        double xInterval = (x2 - x1) / numOfIntermediatePoints;
         for (int j = 0; j <= numOfIntermediatePoints; j++) {
-          final intermediateY = y1 + yInterval * j;
-          final intermediateX = x1 + xInterval * j;
-          canvas.drawPoints(
-            PointMode.points,
-            [Offset(intermediateX, intermediateY)],
+          double intermediateY = y1 + yInterval * j;
+          double intermediateX = x1 + xInterval * j;
+          canvas.drawCircle(
+            Offset(intermediateX, size.height - intermediateY),
+            1,
             paint,
           );
         }
       }
+      canvas.drawCircle(
+        Offset(x1, size.height - y1),
+        1,
+        paint,
+      );
     }
+    canvas.drawCircle(
+      Offset(data.last.x + size.width, size.height - data.last.y * yScale),
+      1,
+      paint,
+    );
   }
 
   @override
@@ -159,16 +176,28 @@ class _LineGraphPainter extends CustomPainter {
       ..strokeWidth = 1.5
       ..color = Colors.white;
     Path path = Path();
+    // Find the maximum y value in the data
+    double maxY = 0;
+
+    // Calculate the scaling factor for the y values
+    double yScale = 1;
 
     // Iterate over the data points and add intermediate points if necessary
     if (data.isNotEmpty) {
-      path.moveTo(data.first.x + size.width, size.height - data.first.y);
+      maxY = data.map((point) => point.y).reduce(max);
+      yScale = (maxY > size.height) ? (size.height / maxY) : 1;
+      path.moveTo(
+        data.first.x + size.width,
+        (size.height - data.first.y * yScale),
+      );
     }
     for (int i = 0; i < data.length - 1; i++) {
-      double y = size.height - data[i].y;
-      double x = data[i].x + size.width;
-      path.lineTo(x, y);
+      double y = data[i + 1].y * yScale;
+      double x = data[i + 1].x + size.width;
+
+      path.lineTo(x, size.height - y);
     }
+
     canvas.drawPath(path, paint);
   }
 
