@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:real_time_chart/real_time_chart.dart';
 
 void main() {
   runApp(const MyApp());
@@ -29,39 +30,44 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.black,
       appBar: AppBar(
         title: Text(widget.title),
       ),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
+        child: Container(
+          color: Colors.red,
+          width: MediaQuery.of(context).size.width,
+          height: MediaQuery.of(context).size.width,
+          child: RealTimeGraph(
+            key: const Key('LiveGraph'),
+            stream: getDataStream(),
+          ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ),
     );
+  }
+
+  int count = 0;
+  bool up = true;
+
+  Stream<double> getDataStream() {
+    return Stream.periodic(const Duration(milliseconds: 10), (_) {
+      if (count >= 100) {
+        up = false;
+      } else if (count <= 0) {
+        up = true;
+      }
+      if (up) {
+        count++;
+      } else {
+        count--;
+      }
+
+      return count * 1.0;
+    });
   }
 }

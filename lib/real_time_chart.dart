@@ -1,7 +1,4 @@
 library real_time_chart;
 
-/// A Calculator.
-class Calculator {
-  /// Returns [value] plus 1.
-  int addOne(int value) => value + 1;
-}
+export 'src/point.dart';
+export 'src/live_chart.dart';
