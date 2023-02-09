@@ -39,16 +39,33 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         title: Text(widget.title),
       ),
-      body: Center(
-        child: Container(
-          color: Colors.red,
-          width: MediaQuery.of(context).size.width,
-          height: MediaQuery.of(context).size.width,
-          child: RealTimeGraph(
-            key: const Key('LiveGraph'),
-            stream: getDataStream(),
+      body: Column(
+        children: [
+          Flexible(
+            child: Container(
+              color: Colors.red,
+              width: MediaQuery.of(context).size.width,
+              height: MediaQuery.of(context).size.width,
+              child: RealTimeGraph(
+                stream: getDataStream(),
+              ),
+            ),
           ),
-        ),
+          const SizedBox(
+            height: 32,
+          ),
+          Flexible(
+            child: Container(
+              color: Colors.red,
+              width: MediaQuery.of(context).size.width,
+              height: MediaQuery.of(context).size.width,
+              child: RealTimeGraph(
+                stream: getDataStream(),
+                displayMode: ChartDisplay.points,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

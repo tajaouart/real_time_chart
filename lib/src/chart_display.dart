@@ -1,0 +1,1 @@
+enum ChartDisplay { points, line }

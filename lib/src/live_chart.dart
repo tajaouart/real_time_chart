@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import 'chart_display.dart';
 import 'point.dart';
 
 class RealTimeGraph extends StatefulWidget {
@@ -12,12 +13,14 @@ class RealTimeGraph extends StatefulWidget {
     this.speed = 1,
     required this.stream,
     this.pointsSpacing = 3.0,
+    this.displayMode = ChartDisplay.line,
   }) : super(key: key);
 
   final Stream<double> stream;
   final Duration updateDelay;
   final int speed;
   final double pointsSpacing;
+  final ChartDisplay displayMode;
 
   @override
   RealTimeGraphState createState() => RealTimeGraphState();
@@ -69,10 +72,14 @@ class RealTimeGraphState extends State<RealTimeGraph>
           height: constraints.maxWidth,
           width: constraints.maxHeight,
           child: CustomPaint(
-            painter: _PointsGraphPainter(
-              data: _data,
-              pointsSpacing: widget.pointsSpacing,
-            ),
+            painter: widget.displayMode == ChartDisplay.points
+                ? _PointsGraphPainter(
+                    data: _data,
+                    pointsSpacing: widget.pointsSpacing,
+                  )
+                : _LineGraphPainter(
+                    data: _data,
+                  ),
           ),
         );
       },
@@ -117,7 +124,6 @@ class _PointsGraphPainter extends CustomPainter {
       final y2 = size.height - data[i + 1].y;
       final x2 = data[i + 1].x + size.width;
       final yDiff = (y2 - y1).abs();
-      final xDiff = (x2 - x1).abs();
 
       // If the difference in y values is small, add intermediate points
       if (yDiff >= pointsSpacing) {
@@ -128,10 +134,42 @@ class _PointsGraphPainter extends CustomPainter {
           final intermediateY = y1 + yInterval * j;
           final intermediateX = x1 + xInterval * j;
           canvas.drawPoints(
-              PointMode.points, [Offset(intermediateX, intermediateY)], paint);
+            PointMode.points,
+            [Offset(intermediateX, intermediateY)],
+            paint,
+          );
         }
       }
     }
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => true;
+}
+
+class _LineGraphPainter extends CustomPainter {
+  final List<Point<double>> data;
+
+  _LineGraphPainter({required this.data});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5
+      ..color = Colors.white;
+    Path path = Path();
+
+    // Iterate over the data points and add intermediate points if necessary
+    if (data.isNotEmpty) {
+      path.moveTo(data.first.x + size.width, size.height - data.first.y);
+    }
+    for (int i = 0; i < data.length - 1; i++) {
+      double y = size.height - data[i].y;
+      double x = data[i].x + size.width;
+      path.lineTo(x, y);
+    }
+    canvas.drawPath(path, paint);
   }
 
   @override
