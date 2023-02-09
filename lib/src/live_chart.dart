@@ -12,12 +12,18 @@ class RealTimeGraph extends StatefulWidget {
     this.updateDelay = const Duration(milliseconds: 50),
     this.speed = 1,
     this.graphStroke = 0.5,
+    this.graphColor = Colors.red,
+    this.axisColor = Colors.green,
+    this.axisWidth = 1.0,
     required this.stream,
     this.pointsSpacing = 3.0,
     this.displayMode = ChartDisplay.line,
   }) : super(key: key);
 
   final Stream<double> stream;
+  final Color graphColor;
+  final double axisWidth;
+  final Color axisColor;
   final Duration updateDelay;
   final int speed;
   final double graphStroke;
@@ -63,59 +69,60 @@ class RealTimeGraphState extends State<RealTimeGraph>
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      child: RepaintBoundary(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            if (!constraints.maxWidth.isFinite ||
-                !constraints.maxHeight.isFinite) {
-              return const SizedBox.shrink();
-            }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (!constraints.maxWidth.isFinite || !constraints.maxHeight.isFinite) {
+          return const SizedBox.shrink();
+        }
 
-            return SizedBox(
-              key: Key('${constraints.maxWidth}${constraints.maxHeight}'),
-              height: constraints.maxHeight,
-              width: constraints.maxWidth,
-              child: Row(
+        return SizedBox(
+          key: Key('${constraints.maxWidth}${constraints.maxHeight}'),
+          height: constraints.maxHeight,
+          width: constraints.maxWidth,
+          child: Row(
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              Container(
+                color: widget.axisColor,
+                width: widget.axisWidth,
+                height: constraints.maxHeight,
+              ),
+              Column(
                 mainAxisSize: MainAxisSize.max,
                 children: [
-                  Container(
-                    color: Colors.grey,
-                    width: 1,
-                    height: constraints.maxHeight,
-                  ),
-                  Column(
-                    mainAxisSize: MainAxisSize.max,
-                    children: [
-                      CustomPaint(
+                  ClipRRect(
+                    child: RepaintBoundary(
+                      child: CustomPaint(
                         size: Size(
-                          constraints.maxWidth - 1,
-                          constraints.maxHeight - 1,
+                          constraints.maxWidth - widget.axisWidth,
+                          constraints.maxHeight - widget.axisWidth,
                         ),
                         painter: widget.displayMode == ChartDisplay.points
                             ? _PointGraphPainter(
                                 data: _data,
                                 pointsSpacing: widget.pointsSpacing,
                                 graphStroke: widget.graphStroke,
+                                color: widget.graphColor,
                               )
                             : _LineGraphPainter(
                                 data: _data,
                                 graphStroke: widget.graphStroke,
+                                color: widget.graphColor,
                               ),
                       ),
-                      Container(
-                        color: Colors.grey,
-                        height: 1,
-                        width: constraints.maxWidth - 1,
-                      )
-                    ],
+                    ),
                   ),
+                  Container(
+                    color: widget.axisColor,
+                    height: widget.axisWidth,
+                    width: constraints.maxWidth - widget.axisWidth,
+                  )
                 ],
               ),
-            );
-          },
-        ),
-      ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -138,18 +145,20 @@ class _PointGraphPainter extends CustomPainter {
     required this.data,
     required this.pointsSpacing,
     required this.graphStroke,
+    required this.color,
   });
 
   final List<Point<double>> data;
   final double pointsSpacing;
   final double graphStroke;
+  final Color color;
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..style = PaintingStyle.fill
       ..strokeWidth = graphStroke
-      ..color = Colors.white;
+      ..color = color;
 
     // Find the maximum y value in the data
     double maxY = 0;
@@ -206,17 +215,19 @@ class _LineGraphPainter extends CustomPainter {
   _LineGraphPainter({
     required this.data,
     required this.graphStroke,
+    required this.color,
   });
 
   final List<Point<double>> data;
   final double graphStroke;
+  final Color color;
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = graphStroke
-      ..color = Colors.white;
+      ..color = color;
     Path path = Path();
     // Find the maximum y value in the data
     double maxY = 0;
