@@ -1,0 +1,7 @@
+library real_time_chart;
+
+/// A Calculator.
+class Calculator {
+  /// Returns [value] plus 1.
+  int addOne(int value) => value + 1;
+}
