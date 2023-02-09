@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:real_time_chart/real_time_chart.dart';
 
@@ -55,19 +57,8 @@ class _MyHomePageState extends State<MyHomePage> {
   bool up = true;
 
   Stream<double> getDataStream() {
-    return Stream.periodic(const Duration(milliseconds: 10), (_) {
-      if (count >= 100) {
-        up = false;
-      } else if (count <= 0) {
-        up = true;
-      }
-      if (up) {
-        count++;
-      } else {
-        count--;
-      }
-
-      return count * 1.0;
+    return Stream.periodic(const Duration(milliseconds: 500), (_) {
+      return Random().nextInt(300).toDouble();
     });
   }
 }

@@ -6,9 +6,18 @@ import 'package:flutter/material.dart';
 import 'point.dart';
 
 class RealTimeGraph extends StatefulWidget {
-  final Stream<double> stream;
+  const RealTimeGraph({
+    Key? key,
+    this.updateDelay = const Duration(milliseconds: 100),
+    this.speed = 1,
+    required this.stream,
+    this.pointsSpacing = 3.0,
+  }) : super(key: key);
 
-  const RealTimeGraph({Key? key, required this.stream}) : super(key: key);
+  final Stream<double> stream;
+  final Duration updateDelay;
+  final int speed;
+  final double pointsSpacing;
 
   @override
   RealTimeGraphState createState() => RealTimeGraphState();
@@ -17,6 +26,7 @@ class RealTimeGraph extends StatefulWidget {
 class RealTimeGraphState extends State<RealTimeGraph>
     with TickerProviderStateMixin {
   StreamSubscription<double>? streamSubscription;
+
   List<Point<double>> _data = [];
   Timer? timer;
 
@@ -25,10 +35,10 @@ class RealTimeGraphState extends State<RealTimeGraph>
     super.initState();
 
     // Subscribe to the stream provided in the constructor
-    streamSubscription = widget.stream.listen(_listener);
+    streamSubscription = widget.stream.listen(_streamListener);
 
     // Start a periodic timer to update the data for visualization
-    timer = Timer.periodic(const Duration(milliseconds: 50), (_) {
+    timer = Timer.periodic(widget.updateDelay, (_) {
       //_data.removeWhere((element) => element.y > 100);
 
       // Clone the data to avoid modifying the original list while iterating
@@ -36,7 +46,7 @@ class RealTimeGraphState extends State<RealTimeGraph>
 
       // Increment the x value of each data point
       for (var element in data) {
-        element.x = element.x - 1;
+        element.x = element.x - widget.speed;
       }
 
       // Trigger a rebuild with the updated data
@@ -59,14 +69,17 @@ class RealTimeGraphState extends State<RealTimeGraph>
           height: constraints.maxWidth,
           width: constraints.maxHeight,
           child: CustomPaint(
-            painter: _GraphPainter(data: _data),
+            painter: _PointsGraphPainter(
+              data: _data,
+              pointsSpacing: widget.pointsSpacing,
+            ),
           ),
         );
       },
     );
   }
 
-  void _listener(double data) {
+  void _streamListener(double data) {
     // Insert the new data point in the beginning of the list
     _data.insert(0, Point(0, data));
   }
@@ -80,10 +93,15 @@ class RealTimeGraphState extends State<RealTimeGraph>
   }
 }
 
-class _GraphPainter extends CustomPainter {
+class _PointsGraphPainter extends CustomPainter {
   final List<Point<double>> data;
 
-  _GraphPainter({required this.data});
+  _PointsGraphPainter({
+    required this.data,
+    required this.pointsSpacing,
+  });
+
+  final double pointsSpacing;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -91,31 +109,29 @@ class _GraphPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5
       ..color = Colors.white;
-    List<Offset> points = [];
 
     // Iterate over the data points and add intermediate points if necessary
     for (int i = 0; i < data.length - 1; i++) {
-      double y1 = size.height - data[i].y;
-      double x1 = data[i].x + size.width;
-      double y2 = size.height - data[i + 1].y;
-      double x2 = data[i + 1].x + size.width;
-      double yDiff = y1 - y2;
-      double xDiff = x1 - x2;
+      final y1 = size.height - data[i].y;
+      final x1 = data[i].x + size.width;
+      final y2 = size.height - data[i + 1].y;
+      final x2 = data[i + 1].x + size.width;
+      final yDiff = (y2 - y1).abs();
+      final xDiff = (x2 - x1).abs();
 
       // If the difference in y values is small, add intermediate points
-      if (xDiff.abs() <= 10) {
-        int numOfIntermediatePoints = (xDiff / 2).round();
-        double yInterval = yDiff / numOfIntermediatePoints;
-        double xInterval = xDiff / numOfIntermediatePoints;
-        for (int j = 1; j <= numOfIntermediatePoints; j++) {
-          double intermediateY = y1 + yInterval * j;
-          double intermediateX = x1 + xInterval * j;
-          points.add(Offset(intermediateX, intermediateY));
+      if (yDiff >= pointsSpacing) {
+        int numOfIntermediatePoints = (yDiff / pointsSpacing).round();
+        final yInterval = (y2 - y1) / numOfIntermediatePoints;
+        final xInterval = (x2 - x1) / numOfIntermediatePoints;
+        for (int j = 0; j <= numOfIntermediatePoints; j++) {
+          final intermediateY = y1 + yInterval * j;
+          final intermediateX = x1 + xInterval * j;
+          canvas.drawPoints(
+              PointMode.points, [Offset(intermediateX, intermediateY)], paint);
         }
       }
     }
-
-    canvas.drawPoints(PointMode.points, points, paint);
   }
 
   @override
