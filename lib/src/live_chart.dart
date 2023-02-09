@@ -9,8 +9,9 @@ import 'point.dart';
 class RealTimeGraph extends StatefulWidget {
   const RealTimeGraph({
     Key? key,
-    this.updateDelay = const Duration(milliseconds: 100),
+    this.updateDelay = const Duration(milliseconds: 50),
     this.speed = 1,
+    this.graphStroke = 0.5,
     required this.stream,
     this.pointsSpacing = 3.0,
     this.displayMode = ChartDisplay.line,
@@ -19,6 +20,7 @@ class RealTimeGraph extends StatefulWidget {
   final Stream<double> stream;
   final Duration updateDelay;
   final int speed;
+  final double graphStroke;
   final double pointsSpacing;
   final ChartDisplay displayMode;
 
@@ -61,28 +63,59 @@ class RealTimeGraphState extends State<RealTimeGraph>
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (!constraints.maxWidth.isFinite || !constraints.maxHeight.isFinite) {
-          return const SizedBox.shrink();
-        }
+    return ClipRRect(
+      child: RepaintBoundary(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            if (!constraints.maxWidth.isFinite ||
+                !constraints.maxHeight.isFinite) {
+              return const SizedBox.shrink();
+            }
 
-        return SizedBox(
-          key: Key('${constraints.maxWidth}${constraints.maxHeight}'),
-          height: constraints.maxWidth,
-          width: constraints.maxHeight,
-          child: CustomPaint(
-            painter: widget.displayMode == ChartDisplay.points
-                ? _PointGraphPainter(
-                    data: _data,
-                    pointSpacing: 3,
-                  )
-                : _LineGraphPainter(
-                    data: _data,
+            return SizedBox(
+              key: Key('${constraints.maxWidth}${constraints.maxHeight}'),
+              height: constraints.maxHeight,
+              width: constraints.maxWidth,
+              child: Row(
+                mainAxisSize: MainAxisSize.max,
+                children: [
+                  Container(
+                    color: Colors.grey,
+                    width: 1,
+                    height: constraints.maxHeight,
                   ),
-          ),
-        );
-      },
+                  Column(
+                    mainAxisSize: MainAxisSize.max,
+                    children: [
+                      CustomPaint(
+                        size: Size(
+                          constraints.maxWidth - 1,
+                          constraints.maxHeight - 1,
+                        ),
+                        painter: widget.displayMode == ChartDisplay.points
+                            ? _PointGraphPainter(
+                                data: _data,
+                                pointsSpacing: widget.pointsSpacing,
+                                graphStroke: widget.graphStroke,
+                              )
+                            : _LineGraphPainter(
+                                data: _data,
+                                graphStroke: widget.graphStroke,
+                              ),
+                      ),
+                      Container(
+                        color: Colors.grey,
+                        height: 1,
+                        width: constraints.maxWidth - 1,
+                      )
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 
@@ -101,16 +134,21 @@ class RealTimeGraphState extends State<RealTimeGraph>
 }
 
 class _PointGraphPainter extends CustomPainter {
-  final List<Point<double>> data;
-  final double pointSpacing;
+  _PointGraphPainter({
+    required this.data,
+    required this.pointsSpacing,
+    required this.graphStroke,
+  });
 
-  _PointGraphPainter({required this.data, required this.pointSpacing});
+  final List<Point<double>> data;
+  final double pointsSpacing;
+  final double graphStroke;
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..style = PaintingStyle.fill
-      ..strokeWidth = 1.5
+      ..strokeWidth = graphStroke
       ..color = Colors.white;
 
     // Find the maximum y value in the data
@@ -131,33 +169,33 @@ class _PointGraphPainter extends CustomPainter {
       double y2 = data[i + 1].y * yScale;
       double x2 = data[i + 1].x + size.width;
       double yDiff = (y2 - y1).abs();
+      double xDiff = (x2 - x1).abs();
 
       // If the difference in y values is small, add intermediate points
-      if (yDiff >= pointSpacing) {
-        int numOfIntermediatePoints = (yDiff / pointSpacing).round();
+      if (yDiff >= pointsSpacing || xDiff >= pointsSpacing) {
+        int numOfIntermediatePoints = yDiff >= pointsSpacing
+            ? (yDiff / pointsSpacing).round()
+            : (xDiff / pointsSpacing).round();
         double yInterval = (y2 - y1) / numOfIntermediatePoints;
         double xInterval = (x2 - x1) / numOfIntermediatePoints;
         for (int j = 0; j <= numOfIntermediatePoints; j++) {
-          double intermediateY = y1 + yInterval * j;
-          double intermediateX = x1 + xInterval * j;
-          canvas.drawCircle(
-            Offset(intermediateX, size.height - intermediateY),
-            1,
-            paint,
-          );
+          final intermediateY = y1 + yInterval * j;
+          final intermediateX = x1 + xInterval * j;
+          if (intermediateX.isFinite && intermediateY.isFinite) {
+            canvas.drawCircle(
+              Offset(intermediateX, size.height - intermediateY),
+              sqrt(graphStroke),
+              paint,
+            );
+          }
         }
       }
       canvas.drawCircle(
         Offset(x1, size.height - y1),
-        1,
+        sqrt(graphStroke),
         paint,
       );
     }
-    canvas.drawCircle(
-      Offset(data.last.x + size.width, size.height - data.last.y * yScale),
-      1,
-      paint,
-    );
   }
 
   @override
@@ -165,15 +203,19 @@ class _PointGraphPainter extends CustomPainter {
 }
 
 class _LineGraphPainter extends CustomPainter {
-  final List<Point<double>> data;
+  _LineGraphPainter({
+    required this.data,
+    required this.graphStroke,
+  });
 
-  _LineGraphPainter({required this.data});
+  final List<Point<double>> data;
+  final double graphStroke;
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5
+      ..strokeWidth = graphStroke
       ..color = Colors.white;
     Path path = Path();
     // Find the maximum y value in the data

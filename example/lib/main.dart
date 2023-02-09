@@ -46,20 +46,17 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           children: [
             Expanded(
-              child: Container(
-                color: Colors.green,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
                 child: RealTimeGraph(
                   stream: stream,
                 ),
               ),
             ),
-            const SizedBox(
-              height: 32,
-              child: Divider(color: Colors.grey,),
-            ),
+            const SizedBox(height: 32),
             Expanded(
-              child: Container(
-                color: Colors.green,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
                 child: RealTimeGraph(
                   stream: stream,
                   displayMode: ChartDisplay.points,
