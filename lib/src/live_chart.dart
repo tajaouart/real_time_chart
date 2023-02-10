@@ -23,17 +23,40 @@ class RealTimeGraph extends StatefulWidget {
     Key? key,
   }) : super(key: key);
 
+  // Callback to build custom Y-axis text.
   final Widget Function(double)? axisTextBuilder;
+
+  // Enum to display chart as line or points.
   final ChartDisplay displayMode;
+
+  // Flag to display Y-axis values or not.
   final bool displayYAxisValues;
+
+  // The stream to listen to for new data.
   final Stream<double> stream;
+
+  // The frequency of updating the chart.
   final Duration updateDelay;
+
+  // The spacing between points in the chart.
   final double pointsSpacing;
+
+  // The stroke width of the Y-axis line.
   final double axisStroke;
+
+  // The stroke width of the graph line.
   final double graphStroke;
+
+  // The color of the graph.
   final Color graphColor;
+
+  // The color of the Y-axis line.
   final Color axisColor;
+
+  // The minimum value of the Y-axis.
   final double minValue;
+
+  // The speed at which the chart updates.
   final int speed;
 
   @override
@@ -190,62 +213,67 @@ class _PointGraphPainter extends CustomPainter {
     required this.color,
   });
 
+  // List of data points to be plotted on the graph
   final List<Point<double>> data;
+
+  // Spacing between consecutive data points on the graph
   final double pointsSpacing;
+
+  // Stroke width of the graph
   final double graphStroke;
+
+  // Color of the graph
   final Color color;
 
   @override
   void paint(Canvas canvas, Size size) {
+    // Paint object used to draw the graph
     final paint = Paint()
       ..style = PaintingStyle.fill
       ..strokeWidth = graphStroke
       ..color = color;
 
-    // Find the maximum y value in the data
-    double maxY = 0;
-
-    // Calculate the scaling factor for the y values
-    double yScale = 1;
-
-    // Iterate over the data points and add intermediate points if necessary
+    // If the data is not empty, calculate the maximum y value and the y scaling factor
     if (data.isNotEmpty) {
-      maxY = data.map((point) => point.y).reduce(max);
-      yScale = (maxY > size.height) ? (size.height / maxY) : 1;
-    }
+      double maxY = data.map((point) => point.y).reduce(max);
+      double yScale = (maxY > size.height) ? (size.height / maxY) : 1;
 
-    for (int i = 0; i < data.length - 1; i++) {
-      double y1 = data[i].y * yScale;
-      double x1 = data[i].x + size.width;
-      double y2 = data[i + 1].y * yScale;
-      double x2 = data[i + 1].x + size.width;
-      double yDiff = (y2 - y1).abs();
-      double xDiff = (x2 - x1).abs();
+      // Iterate over the data points and draw them on the canvas
+      for (int i = 0; i < data.length - 1; i++) {
+        double y1 = data[i].y * yScale;
+        double x1 = data[i].x + size.width;
+        double y2 = data[i + 1].y * yScale;
+        double x2 = data[i + 1].x + size.width;
+        double yDiff = (y2 - y1).abs();
+        double xDiff = (x2 - x1).abs();
 
-      // If the difference in y values is small, add intermediate points
-      if (yDiff >= pointsSpacing || xDiff >= pointsSpacing) {
-        int numOfIntermediatePoints = yDiff >= pointsSpacing
-            ? (yDiff / pointsSpacing).round()
-            : (xDiff / pointsSpacing).round();
-        double yInterval = (y2 - y1) / numOfIntermediatePoints;
-        double xInterval = (x2 - x1) / numOfIntermediatePoints;
-        for (int j = 0; j <= numOfIntermediatePoints; j++) {
-          final intermediateY = y1 + yInterval * j;
-          final intermediateX = x1 + xInterval * j;
-          if (intermediateX.isFinite && intermediateY.isFinite) {
-            canvas.drawCircle(
-              Offset(intermediateX, size.height - intermediateY),
-              sqrt(graphStroke),
-              paint,
-            );
+        // If the difference in y values or x values is large, add intermediate points
+        if (yDiff >= pointsSpacing || xDiff >= pointsSpacing) {
+          int numOfIntermediatePoints = yDiff >= pointsSpacing
+              ? (yDiff / pointsSpacing).round()
+              : (xDiff / pointsSpacing).round();
+          double yInterval = (y2 - y1) / numOfIntermediatePoints;
+          double xInterval = (x2 - x1) / numOfIntermediatePoints;
+          for (int j = 0; j <= numOfIntermediatePoints; j++) {
+            final intermediateY = y1 + yInterval * j;
+            final intermediateX = x1 + xInterval * j;
+            if (intermediateX.isFinite && intermediateY.isFinite) {
+              // Draw an intermediate point if it is within the canvas bounds
+              canvas.drawCircle(
+                Offset(intermediateX, size.height - intermediateY),
+                sqrt(graphStroke),
+                paint,
+              );
+            }
           }
         }
+        // Draw the data point
+        canvas.drawCircle(
+          Offset(x1, size.height - y1),
+          sqrt(graphStroke),
+          paint,
+        );
       }
-      canvas.drawCircle(
-        Offset(x1, size.height - y1),
-        sqrt(graphStroke),
-        paint,
-      );
     }
   }
 
@@ -260,8 +288,13 @@ class _LineGraphPainter extends CustomPainter {
     required this.color,
   });
 
+  // The data to be plotted in the graph
   final List<Point<double>> data;
+
+  // The width of the graph's lines
   final double graphStroke;
+
+  // The color of the graph
   final Color color;
 
   @override
@@ -270,7 +303,10 @@ class _LineGraphPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = graphStroke
       ..color = color;
+
+    // A path object to store the graph's lines
     Path path = Path();
+
     // Find the maximum y value in the data
     double maxY = 0;
 
@@ -281,18 +317,21 @@ class _LineGraphPainter extends CustomPainter {
     if (data.isNotEmpty) {
       maxY = data.map((point) => point.y).reduce(max);
       yScale = (maxY > size.height) ? (size.height / maxY) : 1;
+      // Start the path at the first data point
       path.moveTo(
         data.first.x + size.width,
         (size.height - data.first.y * yScale),
       );
     }
+
+    // Plot the lines between each subsequent data point
     for (int i = 0; i < data.length - 1; i++) {
       double y = data[i + 1].y * yScale;
       double x = data[i + 1].x + size.width;
-
       path.lineTo(x, size.height - y);
     }
 
+    // Draw the path on the canvas
     canvas.drawPath(path, paint);
   }
 
