@@ -11,6 +11,7 @@ class RealTimeGraph extends StatefulWidget {
     this.updateDelay = const Duration(milliseconds: 50),
     this.displayMode = ChartDisplay.line,
     this.displayYAxisValues = true,
+    this.displayYAxisLines = true,
     this.axisColor = Colors.black87,
     this.graphColor = Colors.black45,
     this.pointsSpacing = 3.0,
@@ -31,6 +32,9 @@ class RealTimeGraph extends StatefulWidget {
 
   // Flag to display Y-axis values or not.
   final bool displayYAxisValues;
+
+  // Flag to display the X-Y-axis lines or not.
+  final bool displayYAxisLines;
 
   // The stream to listen to for new data.
   final Stream<double> stream;
@@ -65,11 +69,16 @@ class RealTimeGraph extends StatefulWidget {
 
 class RealTimeGraphState extends State<RealTimeGraph>
     with TickerProviderStateMixin {
+  // Subscription to the stream provided in the constructor
   StreamSubscription<double>? streamSubscription;
 
+  // List of data points to be displayed on the graph
   List<Point<double>> _data = [];
+
+  // Timer to periodically update the data for visualization
   Timer? timer;
 
+  // Width of the canvas for the graph
   double canvasWidth = 1000;
 
   @override
@@ -99,12 +108,15 @@ class RealTimeGraphState extends State<RealTimeGraph>
     });
   }
 
+  // Maximum value of the y-axis of the graph
   double get maxValue {
     return _data.isEmpty ? 0 : _data.map((point) => point.y).reduce(max);
   }
 
+  // Minimum value of the y-axis of the graph
   double get minValue => widget.minValue;
 
+  // Median value of the y-axis of the graph
   double get medianValue => (maxValue + minValue) / 2;
 
   @override
@@ -112,21 +124,26 @@ class RealTimeGraphState extends State<RealTimeGraph>
     return Row(
       mainAxisSize: MainAxisSize.max,
       children: [
+        // Display the values of the y-axis if the option is enabled
         if (widget.displayYAxisValues)
           Column(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              // Call the custom axis text builder if provided
+              // or use the default text builder otherwise
               widget.axisTextBuilder?.call(maxValue) ?? textBuilder(maxValue),
               widget.axisTextBuilder?.call(medianValue) ??
                   textBuilder(medianValue),
               widget.axisTextBuilder?.call(minValue) ?? textBuilder(minValue),
             ],
           ),
-        Container(
-          color: widget.axisColor,
-          width: widget.axisStroke,
-          height: double.maxFinite,
-        ),
+        // Display the y-axis line
+        if (widget.displayYAxisLines)
+          Container(
+            color: widget.axisColor,
+            width: widget.axisStroke,
+            height: double.maxFinite,
+          ),
         Expanded(
           child: Column(
             mainAxisSize: MainAxisSize.max,
@@ -172,11 +189,12 @@ class RealTimeGraphState extends State<RealTimeGraph>
                   },
                 ),
               ),
-              Container(
-                color: widget.axisColor,
-                height: widget.axisStroke,
-                width: double.maxFinite,
-              )
+              if (widget.displayYAxisLines)
+                Container(
+                  color: widget.axisColor,
+                  height: widget.axisStroke,
+                  width: double.maxFinite,
+                )
             ],
           ),
         ),
