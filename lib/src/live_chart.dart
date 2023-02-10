@@ -9,10 +9,12 @@ import 'point.dart';
 class RealTimeGraph extends StatefulWidget {
   const RealTimeGraph({
     this.updateDelay = const Duration(milliseconds: 50),
+    this.supportNegativeValuesDisplay = false,
     this.displayMode = ChartDisplay.line,
     this.displayYAxisValues = true,
     this.displayYAxisLines = true,
-    this.axisColor = Colors.black87,
+    this.xAxisColor = Colors.black87,
+    this.yAxisColor = Colors.black87,
     this.graphColor = Colors.black45,
     this.pointsSpacing = 3.0,
     this.graphStroke = 1,
@@ -22,7 +24,7 @@ class RealTimeGraph extends StatefulWidget {
     this.minValue = 0,
     this.speed = 1,
     Key? key,
-    this.supportNegativeValuesDisplay = false,
+
   }) : super(key: key);
 
   // Callback to build custom Y-axis text.
@@ -59,8 +61,11 @@ class RealTimeGraph extends StatefulWidget {
   // The color of the graph.
   final Color graphColor;
 
+  // The color of the X-axis line.
+  final Color xAxisColor;
+
   // The color of the Y-axis line.
-  final Color axisColor;
+  final Color yAxisColor;
 
   // The minimum value of the Y-axis.
   final double minValue;
@@ -177,7 +182,7 @@ class RealTimeGraphState extends State<RealTimeGraph>
         // Display the y-axis line
         if (widget.displayYAxisLines)
           Container(
-            color: widget.axisColor,
+            color: widget.yAxisColor,
             width: widget.axisStroke,
             height: double.maxFinite,
           ),
@@ -235,7 +240,7 @@ class RealTimeGraphState extends State<RealTimeGraph>
                       ? Alignment.center
                       : Alignment.bottomCenter,
                   child: Container(
-                    color: widget.axisColor,
+                    color: widget.xAxisColor,
                     height: widget.axisStroke,
                     width: double.maxFinite,
                   ),

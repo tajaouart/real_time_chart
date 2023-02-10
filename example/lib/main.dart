@@ -76,6 +76,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   child: RealTimeGraph(
                     stream: stream.map((value) => value - 150),
                     supportNegativeValuesDisplay: true,
+                    xAxisColor: Colors.black12,
                   ),
                 ),
               ),
@@ -89,6 +90,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     stream: stream.map((value) => value - 150),
                     supportNegativeValuesDisplay: true,
                     displayMode: ChartDisplay.points,
+                    xAxisColor: Colors.black12,
                   ),
                 ),
               ),
