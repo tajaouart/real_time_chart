@@ -47,6 +47,8 @@ class RealTimeGraphState extends State<RealTimeGraph>
   List<Point<double>> _data = [];
   Timer? timer;
 
+  double canvasWidth = 1000;
+
   @override
   void initState() {
     super.initState();
@@ -56,7 +58,8 @@ class RealTimeGraphState extends State<RealTimeGraph>
 
     // Start a periodic timer to update the data for visualization
     timer = Timer.periodic(widget.updateDelay, (_) {
-      //_data.removeWhere((element) => element.y > 100);
+      // delete data that is no longer displayed on the graph.
+      _data.removeWhere((element) => element.x < canvasWidth * -1.5);
 
       // Clone the data to avoid modifying the original list while iterating
       List<Point<double>> data = _data.map((e) => e).toList();
@@ -112,6 +115,8 @@ class RealTimeGraphState extends State<RealTimeGraph>
                         !constraints.maxHeight.isFinite) {
                       return const SizedBox.shrink();
                     }
+
+                    canvasWidth = constraints.maxWidth;
 
                     return SizedBox(
                       key: Key(
