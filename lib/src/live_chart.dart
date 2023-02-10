@@ -22,6 +22,7 @@ class RealTimeGraph extends StatefulWidget {
     this.minValue = 0,
     this.speed = 1,
     Key? key,
+    this.supportNegativeValuesDisplay = false,
   }) : super(key: key);
 
   // Callback to build custom Y-axis text.
@@ -35,6 +36,10 @@ class RealTimeGraph extends StatefulWidget {
 
   // Flag to display the X-Y-axis lines or not.
   final bool displayYAxisLines;
+
+  // Flag to display the x-Axis in the middle of the chart
+  // And support the display of negative values < 0
+  final bool supportNegativeValuesDisplay;
 
   // The stream to listen to for new data.
   final Stream<double> stream;
@@ -110,11 +115,43 @@ class RealTimeGraphState extends State<RealTimeGraph>
 
   // Maximum value of the y-axis of the graph
   double get maxValue {
-    return _data.isEmpty ? 0 : _data.map((point) => point.y).reduce(max);
+    if (_data.isEmpty) {
+      return 0;
+    }
+
+    final maxValue = _data.map((point) => point.y).reduce(max);
+    final minValue = _data.map((point) => point.y).reduce(min);
+
+    if (widget.supportNegativeValuesDisplay) {
+      if (maxValue > minValue.abs()) {
+        return maxValue;
+      } else {
+        return minValue.abs();
+      }
+    }
+
+    return maxValue;
   }
 
   // Minimum value of the y-axis of the graph
-  double get minValue => widget.minValue;
+  double get minValue {
+    if (_data.isEmpty) {
+      return 0;
+    }
+
+    final maxValue = _data.map((point) => point.y).reduce(max);
+    final minValue = _data.map((point) => point.y).reduce(min);
+
+    if (widget.supportNegativeValuesDisplay) {
+      if (maxValue > minValue.abs()) {
+        return maxValue * -1;
+      } else {
+        return minValue;
+      }
+    }
+
+    return widget.minValue;
+  }
 
   // Median value of the y-axis of the graph
   double get medianValue => (maxValue + minValue) / 2;
@@ -145,10 +182,9 @@ class RealTimeGraphState extends State<RealTimeGraph>
             height: double.maxFinite,
           ),
         Expanded(
-          child: Column(
-            mainAxisSize: MainAxisSize.max,
+          child: Stack(
             children: [
-              Expanded(
+              Positioned.fill(
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     if (!constraints.maxWidth.isFinite ||
@@ -176,11 +212,15 @@ class RealTimeGraphState extends State<RealTimeGraph>
                                     pointsSpacing: widget.pointsSpacing,
                                     graphStroke: widget.graphStroke,
                                     color: widget.graphColor,
+                                    supportNegativeValuesDisplay:
+                                        widget.supportNegativeValuesDisplay,
                                   )
                                 : _LineGraphPainter(
                                     data: _data,
                                     graphStroke: widget.graphStroke,
                                     color: widget.graphColor,
+                                    supportNegativeValuesDisplay:
+                                        widget.supportNegativeValuesDisplay,
                                   ),
                           ),
                         ),
@@ -190,10 +230,15 @@ class RealTimeGraphState extends State<RealTimeGraph>
                 ),
               ),
               if (widget.displayYAxisLines)
-                Container(
-                  color: widget.axisColor,
-                  height: widget.axisStroke,
-                  width: double.maxFinite,
+                Align(
+                  alignment: widget.supportNegativeValuesDisplay
+                      ? Alignment.center
+                      : Alignment.bottomCenter,
+                  child: Container(
+                    color: widget.axisColor,
+                    height: widget.axisStroke,
+                    width: double.maxFinite,
+                  ),
                 )
             ],
           ),
@@ -229,6 +274,7 @@ class _PointGraphPainter extends CustomPainter {
     required this.pointsSpacing,
     required this.graphStroke,
     required this.color,
+    required this.supportNegativeValuesDisplay,
   });
 
   // List of data points to be plotted on the graph
@@ -243,6 +289,9 @@ class _PointGraphPainter extends CustomPainter {
   // Color of the graph
   final Color color;
 
+  // Whether to support display of negative values on the graph
+  final bool supportNegativeValuesDisplay;
+
   @override
   void paint(Canvas canvas, Size size) {
     // Paint object used to draw the graph
@@ -253,8 +302,24 @@ class _PointGraphPainter extends CustomPainter {
 
     // If the data is not empty, calculate the maximum y value and the y scaling factor
     if (data.isNotEmpty) {
-      double maxY = data.map((point) => point.y).reduce(max);
-      double yScale = (maxY > size.height) ? (size.height / maxY) : 1;
+      // Calculate the maximum and minimum y values in the data
+      final maxY = data.map((point) => point.y).reduce(max);
+      final minY = data.map((point) => point.y).reduce(min);
+
+      // Calculate the scaling factor for the y values
+      double yScale = 1;
+      final yTranslation =
+          supportNegativeValuesDisplay ? size.height / 2 : size.height;
+      if (maxY.abs() > yTranslation) {
+        yScale = yTranslation / maxY.abs();
+      }
+
+      if (minY.abs() > yTranslation) {
+        final scale = yTranslation / minY.abs();
+        if (maxY.abs() < minY.abs()) {
+          yScale = scale;
+        }
+      }
 
       // Iterate over the data points and draw them on the canvas
       for (int i = 0; i < data.length - 1; i++) {
@@ -265,11 +330,10 @@ class _PointGraphPainter extends CustomPainter {
         double yDiff = (y2 - y1).abs();
         double xDiff = (x2 - x1).abs();
 
+        final distance = sqrt(pow(xDiff, 2) + pow(yDiff, 2));
         // If the difference in y values or x values is large, add intermediate points
-        if (yDiff >= pointsSpacing || xDiff >= pointsSpacing) {
-          int numOfIntermediatePoints = yDiff >= pointsSpacing
-              ? (yDiff / pointsSpacing).round()
-              : (xDiff / pointsSpacing).round();
+        if (distance >= pointsSpacing) {
+          int numOfIntermediatePoints = (distance / pointsSpacing).round();
           double yInterval = (y2 - y1) / numOfIntermediatePoints;
           double xInterval = (x2 - x1) / numOfIntermediatePoints;
           for (int j = 0; j <= numOfIntermediatePoints; j++) {
@@ -278,7 +342,7 @@ class _PointGraphPainter extends CustomPainter {
             if (intermediateX.isFinite && intermediateY.isFinite) {
               // Draw an intermediate point if it is within the canvas bounds
               canvas.drawCircle(
-                Offset(intermediateX, size.height - intermediateY),
+                Offset(intermediateX, yTranslation - intermediateY),
                 sqrt(graphStroke),
                 paint,
               );
@@ -287,7 +351,7 @@ class _PointGraphPainter extends CustomPainter {
         }
         // Draw the data point
         canvas.drawCircle(
-          Offset(x1, size.height - y1),
+          Offset(x1, yTranslation - y1),
           sqrt(graphStroke),
           paint,
         );
@@ -304,6 +368,7 @@ class _LineGraphPainter extends CustomPainter {
     required this.data,
     required this.graphStroke,
     required this.color,
+    this.supportNegativeValuesDisplay = false,
   });
 
   // The data to be plotted in the graph
@@ -315,6 +380,9 @@ class _LineGraphPainter extends CustomPainter {
   // The color of the graph
   final Color color;
 
+  // Whether to support display of negative values on the graph
+  final bool supportNegativeValuesDisplay;
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
@@ -325,28 +393,38 @@ class _LineGraphPainter extends CustomPainter {
     // A path object to store the graph's lines
     Path path = Path();
 
-    // Find the maximum y value in the data
-    double maxY = 0;
-
-    // Calculate the scaling factor for the y values
-    double yScale = 1;
-
-    // Iterate over the data points and add intermediate points if necessary
     if (data.isNotEmpty) {
-      maxY = data.map((point) => point.y).reduce(max);
-      yScale = (maxY > size.height) ? (size.height / maxY) : 1;
+      // Calculate the maximum and minimum y values in the data
+      final maxY = data.map((point) => point.y).reduce(max);
+      final minY = data.map((point) => point.y).reduce(min);
+
+      // Calculate the scaling factor for the y values
+      double yScale = 1;
+      final yTranslation =
+          supportNegativeValuesDisplay ? size.height / 2 : size.height;
+      if (maxY.abs() > yTranslation) {
+        yScale = yTranslation / maxY.abs();
+      }
+
+      if (minY.abs() > yTranslation) {
+        final scale = yTranslation / minY.abs();
+        if (maxY.abs() < minY.abs()) {
+          yScale = scale;
+        }
+      }
+
       // Start the path at the first data point
       path.moveTo(
         data.first.x + size.width,
-        (size.height - data.first.y * yScale),
+        yTranslation - (data.first.y * yScale),
       );
-    }
 
-    // Plot the lines between each subsequent data point
-    for (int i = 0; i < data.length - 1; i++) {
-      double y = data[i + 1].y * yScale;
-      double x = data[i + 1].x + size.width;
-      path.lineTo(x, size.height - y);
+      // Plot the lines between each subsequent data point
+      for (int i = 0; i < data.length - 1; i++) {
+        final y = data[i + 1].y * yScale;
+        final x = data[i + 1].x + size.width;
+        path.lineTo(x, yTranslation - y);
+      }
     }
 
     // Draw the path on the canvas

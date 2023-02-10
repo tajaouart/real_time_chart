@@ -34,7 +34,7 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
-    final stream = getDataStream().asBroadcastStream();
+    final stream = positiveDataStream();
 
     return Scaffold(
       appBar: AppBar(
@@ -42,38 +42,66 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: SizedBox(
         width: double.maxFinite,
-        child: Column(
-          children: [
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: RealTimeGraph(
-                  stream: stream,
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              SizedBox(
+                width: MediaQuery.of(context).size.width,
+                height: MediaQuery.of(context).size.width * 0.8,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: RealTimeGraph(
+                    stream: stream,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 32),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: RealTimeGraph(
-                  stream: stream,
-                  displayMode: ChartDisplay.points,
+              const SizedBox(height: 32),
+              SizedBox(
+                width: MediaQuery.of(context).size.width,
+                height: MediaQuery.of(context).size.width * 0.8,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: RealTimeGraph(
+                    stream: stream,
+                    displayMode: ChartDisplay.points,
+                  ),
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 32),
+              SizedBox(
+                width: MediaQuery.of(context).size.width,
+                height: MediaQuery.of(context).size.width * 0.8,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: RealTimeGraph(
+                    stream: stream.map((value) => value - 150),
+                    supportNegativeValuesDisplay: true,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: MediaQuery.of(context).size.width,
+                height: MediaQuery.of(context).size.width * 0.8,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: RealTimeGraph(
+                    stream: stream.map((value) => value - 150),
+                    supportNegativeValuesDisplay: true,
+                    displayMode: ChartDisplay.points,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  int count = 0;
-  bool up = true;
-
-  Stream<double> getDataStream() {
+  Stream<double> positiveDataStream() {
     return Stream.periodic(const Duration(milliseconds: 500), (_) {
-      return Random().nextInt(500).toDouble();
-    });
+      return Random().nextInt(300).toDouble();
+    }).asBroadcastStream();
   }
 }
