@@ -37,7 +37,6 @@ class _MyHomePageState extends State<MyHomePage> {
     final stream = getDataStream().asBroadcastStream();
 
     return Scaffold(
-      backgroundColor: Colors.black,
       appBar: AppBar(
         title: Text(widget.title),
       ),

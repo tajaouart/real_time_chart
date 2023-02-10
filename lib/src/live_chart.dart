@@ -8,27 +8,33 @@ import 'point.dart';
 
 class RealTimeGraph extends StatefulWidget {
   const RealTimeGraph({
-    Key? key,
     this.updateDelay = const Duration(milliseconds: 50),
-    this.speed = 1,
-    this.graphStroke = 0.5,
-    this.graphColor = Colors.red,
-    this.axisColor = Colors.green,
-    this.axisWidth = 1.0,
-    required this.stream,
-    this.pointsSpacing = 3.0,
     this.displayMode = ChartDisplay.line,
+    this.displayYAxisValues = true,
+    this.axisColor = Colors.black87,
+    this.graphColor = Colors.black45,
+    this.pointsSpacing = 3.0,
+    this.graphStroke = 1,
+    this.axisStroke = 1.0,
+    this.axisTextBuilder,
+    required this.stream,
+    this.minValue = 0,
+    this.speed = 1,
+    Key? key,
   }) : super(key: key);
 
-  final Stream<double> stream;
-  final Color graphColor;
-  final double axisWidth;
-  final Color axisColor;
-  final Duration updateDelay;
-  final int speed;
-  final double graphStroke;
-  final double pointsSpacing;
+  final Widget Function(double)? axisTextBuilder;
   final ChartDisplay displayMode;
+  final bool displayYAxisValues;
+  final Stream<double> stream;
+  final Duration updateDelay;
+  final double pointsSpacing;
+  final double axisStroke;
+  final double graphStroke;
+  final Color graphColor;
+  final Color axisColor;
+  final double minValue;
+  final int speed;
 
   @override
   RealTimeGraphState createState() => RealTimeGraphState();
@@ -67,62 +73,93 @@ class RealTimeGraphState extends State<RealTimeGraph>
     });
   }
 
+  double get maxValue {
+    return _data.isEmpty ? 0 : _data.map((point) => point.y).reduce(max);
+  }
+
+  double get minValue => widget.minValue;
+
+  double get medianValue => (maxValue + minValue) / 2;
+
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (!constraints.maxWidth.isFinite || !constraints.maxHeight.isFinite) {
-          return const SizedBox.shrink();
-        }
-
-        return SizedBox(
-          key: Key('${constraints.maxWidth}${constraints.maxHeight}'),
-          height: constraints.maxHeight,
-          width: constraints.maxWidth,
-          child: Row(
-            mainAxisSize: MainAxisSize.max,
+    return Row(
+      mainAxisSize: MainAxisSize.max,
+      children: [
+        if (widget.displayYAxisValues)
+          Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                color: widget.axisColor,
-                width: widget.axisWidth,
-                height: constraints.maxHeight,
-              ),
-              Column(
-                mainAxisSize: MainAxisSize.max,
-                children: [
-                  ClipRRect(
-                    child: RepaintBoundary(
-                      child: CustomPaint(
-                        size: Size(
-                          constraints.maxWidth - widget.axisWidth,
-                          constraints.maxHeight - widget.axisWidth,
-                        ),
-                        painter: widget.displayMode == ChartDisplay.points
-                            ? _PointGraphPainter(
-                                data: _data,
-                                pointsSpacing: widget.pointsSpacing,
-                                graphStroke: widget.graphStroke,
-                                color: widget.graphColor,
-                              )
-                            : _LineGraphPainter(
-                                data: _data,
-                                graphStroke: widget.graphStroke,
-                                color: widget.graphColor,
-                              ),
-                      ),
-                    ),
-                  ),
-                  Container(
-                    color: widget.axisColor,
-                    height: widget.axisWidth,
-                    width: constraints.maxWidth - widget.axisWidth,
-                  )
-                ],
-              ),
+              widget.axisTextBuilder?.call(maxValue) ?? textBuilder(maxValue),
+              widget.axisTextBuilder?.call(medianValue) ??
+                  textBuilder(medianValue),
+              widget.axisTextBuilder?.call(minValue) ?? textBuilder(minValue),
             ],
           ),
-        );
-      },
+        Container(
+          color: widget.axisColor,
+          width: widget.axisStroke,
+          height: double.maxFinite,
+        ),
+        Expanded(
+          child: Column(
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    if (!constraints.maxWidth.isFinite ||
+                        !constraints.maxHeight.isFinite) {
+                      return const SizedBox.shrink();
+                    }
+
+                    return SizedBox(
+                      key: Key(
+                          '${constraints.maxWidth}${constraints.maxHeight}'),
+                      height: constraints.maxHeight,
+                      width: constraints.maxWidth,
+                      child: ClipRRect(
+                        child: RepaintBoundary(
+                          child: CustomPaint(
+                            size: Size(
+                              constraints.maxWidth,
+                              constraints.maxHeight,
+                            ),
+                            painter: widget.displayMode == ChartDisplay.points
+                                ? _PointGraphPainter(
+                                    data: _data,
+                                    pointsSpacing: widget.pointsSpacing,
+                                    graphStroke: widget.graphStroke,
+                                    color: widget.graphColor,
+                                  )
+                                : _LineGraphPainter(
+                                    data: _data,
+                                    graphStroke: widget.graphStroke,
+                                    color: widget.graphColor,
+                                  ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              Container(
+                color: widget.axisColor,
+                height: widget.axisStroke,
+                width: double.maxFinite,
+              )
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget textBuilder(double value) {
+    return Text(
+      value.toString(),
+      style: const TextStyle(color: Colors.black),
     );
   }
 
