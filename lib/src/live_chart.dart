@@ -1,3 +1,23 @@
+/*
+ * Copyright (C) 2023 tajaouart.com
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Contact: developer@tajaouart.com
+ */
+
+
 import 'dart:async';
 import 'dart:math';
 
@@ -7,7 +27,9 @@ import 'chart_display.dart';
 import 'point.dart';
 
 class RealTimeGraph extends StatefulWidget {
-  const RealTimeGraph({
+  final GlobalKey<RealTimeGraphState> globalKey = GlobalKey();
+
+  RealTimeGraph({
     this.updateDelay = const Duration(milliseconds: 50),
     this.supportNegativeValuesDisplay = false,
     this.displayMode = ChartDisplay.line,
@@ -24,7 +46,6 @@ class RealTimeGraph extends StatefulWidget {
     this.minValue = 0,
     this.speed = 1,
     Key? key,
-
   }) : super(key: key);
 
   // Callback to build custom Y-axis text.
@@ -83,7 +104,7 @@ class RealTimeGraphState extends State<RealTimeGraph>
   StreamSubscription<double>? streamSubscription;
 
   // List of data points to be displayed on the graph
-  List<Point<double>> _data = [];
+  List<Point<double>> data = [];
 
   // Timer to periodically update the data for visualization
   Timer? timer;
@@ -101,31 +122,31 @@ class RealTimeGraphState extends State<RealTimeGraph>
     // Start a periodic timer to update the data for visualization
     timer = Timer.periodic(widget.updateDelay, (_) {
       // delete data that is no longer displayed on the graph.
-      _data.removeWhere((element) => element.x < canvasWidth * -1.5);
+      data.removeWhere((element) => element.x < canvasWidth * -1.5);
 
       // Clone the data to avoid modifying the original list while iterating
-      List<Point<double>> data = _data.map((e) => e).toList();
+      List<Point<double>> newData = data.map((e) => e).toList();
 
       // Increment the x value of each data point
-      for (var element in data) {
+      for (var element in newData) {
         element.x = element.x - widget.speed;
       }
 
       // Trigger a rebuild with the updated data
       setState(() {
-        _data = data;
+        data = newData;
       });
     });
   }
 
   // Maximum value of the y-axis of the graph
   double get maxValue {
-    if (_data.isEmpty) {
+    if (data.isEmpty) {
       return 0;
     }
 
-    final maxValue = _data.map((point) => point.y).reduce(max);
-    final minValue = _data.map((point) => point.y).reduce(min);
+    final maxValue = data.map((point) => point.y).reduce(max);
+    final minValue = data.map((point) => point.y).reduce(min);
 
     if (widget.supportNegativeValuesDisplay) {
       if (maxValue > minValue.abs()) {
@@ -140,12 +161,12 @@ class RealTimeGraphState extends State<RealTimeGraph>
 
   // Minimum value of the y-axis of the graph
   double get minValue {
-    if (_data.isEmpty) {
+    if (data.isEmpty) {
       return 0;
     }
 
-    final maxValue = _data.map((point) => point.y).reduce(max);
-    final minValue = _data.map((point) => point.y).reduce(min);
+    final maxValue = data.map((point) => point.y).reduce(max);
+    final minValue = data.map((point) => point.y).reduce(min);
 
     if (widget.supportNegativeValuesDisplay) {
       if (maxValue > minValue.abs()) {
@@ -182,6 +203,7 @@ class RealTimeGraphState extends State<RealTimeGraph>
         // Display the y-axis line
         if (widget.displayYAxisLines)
           Container(
+            key: const Key('Y-Axis'),
             color: widget.yAxisColor,
             width: widget.axisStroke,
             height: double.maxFinite,
@@ -207,13 +229,14 @@ class RealTimeGraphState extends State<RealTimeGraph>
                       child: ClipRRect(
                         child: RepaintBoundary(
                           child: CustomPaint(
+                            key: Key(widget.displayMode.toString()),
                             size: Size(
                               constraints.maxWidth,
                               constraints.maxHeight,
                             ),
                             painter: widget.displayMode == ChartDisplay.points
                                 ? _PointGraphPainter(
-                                    data: _data,
+                                    data: data,
                                     pointsSpacing: widget.pointsSpacing,
                                     graphStroke: widget.graphStroke,
                                     color: widget.graphColor,
@@ -221,7 +244,7 @@ class RealTimeGraphState extends State<RealTimeGraph>
                                         widget.supportNegativeValuesDisplay,
                                   )
                                 : _LineGraphPainter(
-                                    data: _data,
+                                    data: data,
                                     graphStroke: widget.graphStroke,
                                     color: widget.graphColor,
                                     supportNegativeValuesDisplay:
@@ -240,6 +263,7 @@ class RealTimeGraphState extends State<RealTimeGraph>
                       ? Alignment.center
                       : Alignment.bottomCenter,
                   child: Container(
+                    key: const Key('X-Axis'),
                     color: widget.xAxisColor,
                     height: widget.axisStroke,
                     width: double.maxFinite,
@@ -259,9 +283,9 @@ class RealTimeGraphState extends State<RealTimeGraph>
     );
   }
 
-  void _streamListener(double data) {
+  void _streamListener(double value) {
     // Insert the new data point in the beginning of the list
-    _data.insert(0, Point(0, data));
+    data.insert(0, Point(0, value));
   }
 
   @override
