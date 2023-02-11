@@ -1,3 +1,9 @@
+// Copyright (c) 2023 Tajaouart Mounir
+//
+// This demo showcases the usage of the `RealTimeGraph` widget
+// and provides an example of how to use it in a Flutter app.
+// Website: https://tajaouart.com
+
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -8,22 +14,23 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      debugShowCheckedModeBanner: false,
+      title: 'Real-Time Chart Demo',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MyHomePage(title: 'Real-Time Chart Demo'),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+  const MyHomePage({Key? key, required this.title}) : super(key: key);
 
   final String title;
 
@@ -44,7 +51,9 @@ class _MyHomePageState extends State<MyHomePage> {
         width: double.maxFinite,
         child: SingleChildScrollView(
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Display a real-time graph of positive data
               SizedBox(
                 width: MediaQuery.of(context).size.width,
                 height: MediaQuery.of(context).size.width * 0.8,
@@ -55,6 +64,8 @@ class _MyHomePageState extends State<MyHomePage> {
                   ),
                 ),
               ),
+
+              // Display a real-time graph of positive data as points
               const SizedBox(height: 32),
               SizedBox(
                 width: MediaQuery.of(context).size.width,
@@ -67,7 +78,15 @@ class _MyHomePageState extends State<MyHomePage> {
                   ),
                 ),
               ),
+
+              // Display a real-time graph of positive and negative data
               const SizedBox(height: 32),
+              const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text(
+                  'Supports negative values :',
+                ),
+              ),
               SizedBox(
                 width: MediaQuery.of(context).size.width,
                 height: MediaQuery.of(context).size.width * 0.8,
@@ -80,7 +99,9 @@ class _MyHomePageState extends State<MyHomePage> {
                   ),
                 ),
               ),
-              const SizedBox(height: 32),
+
+              // Display a real-time graph of positive and negative data as points
+
               SizedBox(
                 width: MediaQuery.of(context).size.width,
                 height: MediaQuery.of(context).size.width * 0.8,
