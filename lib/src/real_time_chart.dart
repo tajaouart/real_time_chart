@@ -428,7 +428,7 @@ class _LineGraphPainter extends CustomPainter {
       final minY = data.map((point) => point.y).reduce(min);
 
       // Calculate the scaling factor for the y values
-      double yScale = 1;
+      double yScale = size.height / 10;
       final yTranslation =
           supportNegativeValuesDisplay ? size.height / 2 : size.height;
       if (maxY.abs() > yTranslation) {
